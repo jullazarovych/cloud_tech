@@ -2,6 +2,7 @@
 *.tfstate.*
 *.tfstate.backup
 
+.gitibnore
 .terraform/
 .terraform.lock.hcl
 
