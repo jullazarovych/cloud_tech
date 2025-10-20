@@ -7,34 +7,31 @@ resource "azurerm_resource_group" "rg2" {
   }
 }
 
-data "azurerm_policy_definition" "require_tag_value" {
-  display_name = "Require a tag and its value on resources"
+data "azurerm_policy_definition" "inherit_tag" {
+  display_name = "Inherit a tag from the resource group if missing"
 }
 
-resource "azurerm_resource_group_policy_assignment" "require_cost_center_tag" {
-  name                 = "require-cost-center-tag"
-  display_name         = "Require Cost Center tag and its value on resources"
-  description          = "Require Cost Center tag and its value on all resources in the resource group"
+resource "azurerm_resource_group_policy_assignment" "inherit_cost_center_tag" {
+  name                 = "inherit-cost-center-tag-000"
+  display_name         = "Inherit the Cost Center tag and its value 000 from the resource group if missing"
+  description          = "Inherit the Cost Center tag and its value 000 from the resource group if missing"
   resource_group_id    = azurerm_resource_group.rg2.id
-  policy_definition_id = data.azurerm_policy_definition.require_tag_value.id
+  policy_definition_id = data.azurerm_policy_definition.inherit_tag.id
   enforce             = true
 
+  location = azurerm_resource_group.rg2.location
+  identity {
+    type = "SystemAssigned"
+  }
+
   parameters = jsonencode({
-    tagName  = { value = "Cost Center" }
-    tagValue = { value = "000" }
+    tagName = { value = "Cost Center" }
   })
 }
 
-resource "random_string" "sa_suffix" {
-  length  = 10
-  special = false 
-  upper   = false 
-}
-
-resource "azurerm_storage_account" "test_storage_fail" {
-  name = "tflabsa${random_string.sa_suffix.result}"
-  resource_group_name      = azurerm_resource_group.rg2.name
-  location                 = azurerm_resource_group.rg2.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
+resource "azurerm_resource_policy_remediation" "remediate_tags" {
+  name                 = "remediate-missing-cost-center-tag"
+  resource_id          = azurerm_resource_group.rg2.id
+  policy_assignment_id = azurerm_resource_group_policy_assignment.inherit_cost_center_tag.id
+  depends_on = [azurerm_resource_group_policy_assignment.inherit_cost_center_tag]
 }
