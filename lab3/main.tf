@@ -73,3 +73,10 @@ resource "azurerm_managed_disk" "disk4" {
     deployment = "task4-cli-terraform"
   }
 }
+resource "null_resource" "deploy_bicep_disk5" {
+  depends_on = [azurerm_resource_group.rg3]
+
+  provisioner "local-exec" {
+    command = "az deployment group create --resource-group ${azurerm_resource_group.rg3.name} --template-file azuredeploydisk.bicep --parameters managedDiskName=az104-disk5 skuName=StandardSSD_LRS diskSizeinGiB=32"
+  }
+}
