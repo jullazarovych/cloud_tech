@@ -24,3 +24,17 @@ resource "azurerm_resource_group_policy_assignment" "require_cost_center_tag" {
     tagValue = { value = "000" }
   })
 }
+
+resource "random_string" "sa_suffix" {
+  length  = 10
+  special = false 
+  upper   = false 
+}
+
+resource "azurerm_storage_account" "test_storage_fail" {
+  name = "tflabsa${random_string.sa_suffix.result}"
+  resource_group_name      = azurerm_resource_group.rg2.name
+  location                 = azurerm_resource_group.rg2.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
