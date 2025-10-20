@@ -17,3 +17,7 @@ output "cloudshell_storage_account" {
 output "cloudshell_file_share" {
   value = azurerm_storage_share.cloudshell_share.name
 }
+
+output "disk4_name" {
+  value = azurerm_managed_disk.disk4.name
+}

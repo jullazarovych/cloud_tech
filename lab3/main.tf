@@ -60,3 +60,16 @@ resource "azurerm_managed_disk" "disk3" {
     deployment = "task3-terraform"
   }
 }
+
+resource "azurerm_managed_disk" "disk4" {
+  name                 = "az104-disk4"
+  location             = azurerm_resource_group.rg3.location
+  resource_group_name  = azurerm_resource_group.rg3.name
+  create_option        = "Empty"
+  storage_account_type = "Standard_LRS"
+  disk_size_gb         = 32
+
+  tags = {
+    deployment = "task4-cli-terraform"
+  }
+}
