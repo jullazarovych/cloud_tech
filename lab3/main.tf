@@ -29,3 +29,34 @@ resource "azurerm_managed_disk" "disk2" {
     deployment = "task2"
   }
 }
+
+resource "azurerm_storage_account" "cloudshell" {
+  name                     = "az104cloudshellsa123"
+  resource_group_name      = azurerm_resource_group.rg3.name
+  location                 = azurerm_resource_group.rg3.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+
+  tags = {
+    purpose = "cloudshell-storage"
+  }
+}
+
+resource "azurerm_storage_share" "cloudshell_share" {
+  name                 = "fs-cloudshell"
+  storage_account_name = azurerm_storage_account.cloudshell.name
+  quota                = 50
+}
+
+resource "azurerm_managed_disk" "disk3" {
+  name                 = "az104-disk3"
+  location             = azurerm_resource_group.rg3.location
+  resource_group_name  = azurerm_resource_group.rg3.name
+  create_option        = "Empty"
+  storage_account_type = "Standard_LRS"
+  disk_size_gb         = 32
+
+  tags = {
+    deployment = "task3-terraform"
+  }
+}
