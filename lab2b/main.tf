@@ -35,3 +35,9 @@ resource "azurerm_resource_policy_remediation" "remediate_tags" {
   policy_assignment_id = azurerm_resource_group_policy_assignment.inherit_cost_center_tag.id
   depends_on = [azurerm_resource_group_policy_assignment.inherit_cost_center_tag]
 }
+resource "azurerm_management_lock" "rg_lock" {
+  name       = "rg-lock"
+  scope      = azurerm_resource_group.rg2.id
+  lock_level = "CanNotDelete"
+  notes      = "Prevents deletion of the resource group az104-rg2."
+}
