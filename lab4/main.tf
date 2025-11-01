@@ -91,3 +91,37 @@ resource "azurerm_subnet_network_security_group_association" "shared_nsg_assoc" 
   subnet_id                 = azurerm_subnet.shared.id
   network_security_group_id = azurerm_network_security_group.nsg_secure.id
 }
+
+resource "azurerm_dns_zone" "public_zone" {
+  name                = "contoso-ylaz.com"
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_dns_a_record" "www" {
+  name                = "www"
+  zone_name           = azurerm_dns_zone.public_zone.name
+  resource_group_name = azurerm_resource_group.rg.name
+  ttl                 = 3600 
+  records             = ["10.1.1.4"]
+}
+
+resource "azurerm_private_dns_zone" "private_zone" {
+  name                = "private.contoso.com"
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_private_dns_a_record" "sensorvm" {
+  name                = "sensorvm"
+  zone_name           = azurerm_private_dns_zone.private_zone.name
+  resource_group_name = azurerm_resource_group.rg.name
+  ttl                 = 3600 
+  records             = ["10.1.1.4"]
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "mfg_link" {
+  name                  = "manufacturing-link"
+  resource_group_name   = azurerm_resource_group.rg.name
+  private_dns_zone_name = azurerm_private_dns_zone.private_zone.name
+  
+  virtual_network_id    = azurerm_virtual_network.vnet_mfg.id 
+}
