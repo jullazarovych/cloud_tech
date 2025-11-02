@@ -103,3 +103,21 @@ resource "azurerm_windows_virtual_machine" "vm_mfg" {
     version   = "latest"
   }
 }
+
+resource "azurerm_virtual_network_peering" "core_to_mfg" {
+  name                      = "CoreServicesVnet-to-ManufacturingVnet"
+  resource_group_name       = azurerm_resource_group.rg.name
+  virtual_network_name      = azurerm_virtual_network.vnet.name     
+  remote_virtual_network_id = azurerm_virtual_network.vnet_mfg.id 
+  allow_virtual_network_access = true
+  allow_forwarded_traffic = true
+}
+
+resource "azurerm_virtual_network_peering" "mfg_to_core" {
+  name                      = "ManufacturingVnet-to-CoreServicesVnet"
+  resource_group_name       = azurerm_resource_group.rg.name
+  virtual_network_name      = azurerm_virtual_network.vnet_mfg.name 
+  remote_virtual_network_id = azurerm_virtual_network.vnet.id    
+  allow_virtual_network_access = true
+  allow_forwarded_traffic = true
+}
