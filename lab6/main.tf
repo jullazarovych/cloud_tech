@@ -117,3 +117,58 @@ resource "azurerm_virtual_machine_extension" "cse" {
     "commandToExecute" = local.vm_scripts[count.index] 
   })
 }
+
+resource "azurerm_public_ip" "lb_pip" {
+  name                = "az104-lbpip"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Standard"
+  allocation_method   = "Static"   
+}
+
+resource "azurerm_lb" "lb" {
+  name                = "az104-lb"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Standard" 
+
+  frontend_ip_configuration {
+    name                 = "az104-fe"
+    public_ip_address_id = azurerm_public_ip.lb_pip.id
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "be_pool" {
+  name            = "az104-be"
+  loadbalancer_id = azurerm_lb.lb.id
+}
+
+resource "azurerm_lb_probe" "hp" {
+  name                = "az104-hp"
+  loadbalancer_id     = azurerm_lb.lb.id
+  protocol            = "Tcp"
+  port                = 80
+  interval_in_seconds = 5
+}
+
+resource "azurerm_lb_rule" "lb_rule" {
+  name                           = "az104-lbrule"
+  loadbalancer_id                = azurerm_lb.lb.id
+  frontend_ip_configuration_name = "az104-fe"
+  protocol                       = "Tcp"
+  frontend_port                  = 80
+  backend_port                   = 80
+  backend_address_pool_ids       = [azurerm_lb_backend_address_pool.be_pool.id]
+  probe_id                       = azurerm_lb_probe.hp.id
+  idle_timeout_in_minutes        = 4
+  enable_tcp_reset               = false
+  floating_ip_enabled            = false
+}
+
+resource "azurerm_network_interface_backend_address_pool_association" "nic_lb_assoc" {
+  count                   = 2  
+  network_interface_id    = azurerm_network_interface.nic[count.index].id
+  ip_configuration_name   = "ipconfig1" 
+  backend_address_pool_id = azurerm_lb_backend_address_pool.be_pool.id
+}
+
