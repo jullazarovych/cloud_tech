@@ -172,3 +172,116 @@ resource "azurerm_network_interface_backend_address_pool_association" "nic_lb_as
   backend_address_pool_id = azurerm_lb_backend_address_pool.be_pool.id
 }
 
+resource "azurerm_subnet" "appgw" {
+  name                 = "subnet-appgw"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.60.3.224/27"]
+}
+
+resource "azurerm_public_ip" "gwpip" {
+  name                = "az104-gwpip"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "Standard"
+  allocation_method   = "Static"
+  zones               = ["1"]
+}
+
+resource "azurerm_application_gateway" "appgw" {
+  name                = "az104-appgw"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku {
+    name     = "Standard_v2"
+    tier     = "Standard_v2"
+  }
+  
+  autoscale_configuration {
+    min_capacity = 2
+    max_capacity = 3
+  }
+  enable_http2 = false
+  zones = ["1"]
+
+  gateway_ip_configuration {
+    name      = "appgw-ip-config"
+    subnet_id = azurerm_subnet.appgw.id
+  }
+
+  frontend_ip_configuration {
+    name                 = "appgw-fe-public"
+    public_ip_address_id = azurerm_public_ip.gwpip.id
+  }
+
+  frontend_port {
+    name = "port_80"
+    port = 80
+  }
+
+  backend_address_pool {
+    name = "az104-appgwbe"
+    ip_addresses = [
+      azurerm_network_interface.nic[1].private_ip_address, 
+      azurerm_network_interface.nic[2].private_ip_address 
+    ]
+  }
+  
+  backend_address_pool {
+    name = "az104-imagebe"
+    ip_addresses = [
+      azurerm_network_interface.nic[1].private_ip_address 
+    ]
+  }
+
+  backend_address_pool {
+    name = "az104-videobe"
+    ip_addresses = [
+      azurerm_network_interface.nic[2].private_ip_address 
+    ]
+  }
+
+  backend_http_settings {
+    name                  = "az104-http"
+    cookie_based_affinity = "Disabled"
+    port                  = 80
+    protocol              = "Http"
+    request_timeout       = 20
+  }
+
+  http_listener {
+    name                           = "az104-listener"
+    frontend_ip_configuration_name = "appgw-fe-public"
+    frontend_port_name             = "port_80"
+    protocol                       = "Http"
+  }
+
+  url_path_map {
+    name = "path-map-rules"
+    default_backend_address_pool_name = "az104-appgwbe"
+    default_backend_http_settings_name = "az104-http"
+    path_rule {
+      name  = "images"
+      paths = ["/image/*"]
+      backend_address_pool_name = "az104-imagebe"
+      backend_http_settings_name = "az104-http"
+    }
+    path_rule {
+      name  = "videos"
+      paths = ["/video/*"]
+      backend_address_pool_name = "az104-videobe"
+      backend_http_settings_name = "az104-http"
+    }
+  }
+
+  request_routing_rule {
+    name               = "az104-gwrule"
+    rule_type          = "PathBasedRouting"
+    priority           = 10
+    http_listener_name = "az104-listener"
+    url_path_map_name  = "path-map-rules"
+  }
+}
+
+
+
