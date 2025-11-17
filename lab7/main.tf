@@ -22,12 +22,13 @@ resource "azurerm_storage_account" "storage" {
   account_replication_type = "RAGRS" 
 
   public_network_access_enabled = true
+
   network_rules {
     default_action             = "Deny"                   
     ip_rules                   = [data.http.ip.response_body] 
     bypass                     = ["AzureServices"]         
   }
-
+  
   blob_properties {
     delete_retention_policy {
       days = 7
@@ -113,4 +114,39 @@ data "azurerm_storage_account_sas" "sas_token" {
 
   start  = timeadd(timestamp(), "-24h") 
   expiry = timeadd(timestamp(), "24h")  
+}
+
+resource "azurerm_storage_share" "file_share" {
+  name                 = "share1"
+  storage_account_id   = azurerm_storage_account.storage.id
+  quota                = 1
+}
+
+resource "null_resource" "upload_file_workaround" {
+  depends_on = [
+    azurerm_storage_share.file_share
+  ]
+  provisioner "local-exec" {
+    command = "az storage file upload --share-name ${azurerm_storage_share.file_share.name} --source cat.jpeg --path file-from-terraform.txt"
+    environment = {
+      AZURE_STORAGE_ACCOUNT = azurerm_storage_account.storage.name
+      AZURE_STORAGE_KEY     = azurerm_storage_account.storage.primary_access_key
+    }
+  }
+}
+
+resource "azurerm_virtual_network" "vnet" {
+  name                = "vnet1"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = "default"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+
+  service_endpoints    = ["Microsoft.Storage"]
 }
