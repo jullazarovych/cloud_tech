@@ -72,3 +72,20 @@ resource "azurerm_windows_virtual_machine" "vm" {
 
   patch_mode = "AutomaticByPlatform"
 }
+resource "azurerm_managed_disk" "disk1" {
+  name                 = "vm1-disk1"
+  location             = azurerm_resource_group.rg.location
+  resource_group_name  = azurerm_resource_group.rg.name
+  storage_account_type = "StandardSSD_LRS" 
+  
+  create_option        = "Empty"
+  disk_size_gb         = 32
+  zone                 = "1" 
+}
+
+resource "azurerm_virtual_machine_data_disk_attachment" "disk1_attach" {
+  managed_disk_id    = azurerm_managed_disk.disk1.id
+  virtual_machine_id = azurerm_windows_virtual_machine.vm[0].id
+  lun                = 0 
+  caching            = "ReadWrite"
+}
