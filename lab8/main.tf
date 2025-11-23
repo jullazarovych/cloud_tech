@@ -86,6 +86,6 @@ resource "azurerm_managed_disk" "disk1" {
 resource "azurerm_virtual_machine_data_disk_attachment" "disk1_attach" {
   managed_disk_id    = azurerm_managed_disk.disk1.id
   virtual_machine_id = azurerm_windows_virtual_machine.vm[0].id
-  lun                = 0 
+  lun                = 0
   caching            = "ReadWrite"
 }
