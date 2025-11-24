@@ -71,3 +71,70 @@ resource "azurerm_recovery_services_vault" "vault" {
 
   soft_delete_enabled = true 
 }
+
+resource "azurerm_backup_policy_vm" "policy" {
+  name                = "az104-backup"
+  resource_group_name = azurerm_resource_group.rg.name
+  recovery_vault_name = azurerm_recovery_services_vault.vault.name
+
+  timezone = "UTC" 
+  backup {
+    frequency = "Daily"
+    time      = "00:00" 
+  }
+
+  retention_daily {
+    count = 30 
+  }
+
+  instant_restore_retention_days = 2
+}
+
+resource "azurerm_backup_protected_vm" "protection" {
+  resource_group_name = azurerm_resource_group.rg.name
+  recovery_vault_name = azurerm_recovery_services_vault.vault.name
+  
+  source_vm_id        = azurerm_windows_virtual_machine.vm.id
+  backup_policy_id    = azurerm_backup_policy_vm.policy.id
+}
+
+
+resource "azurerm_storage_account" "sa_monitor" {
+  name                     = "az104sajuliala125"
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = azurerm_resource_group.rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_monitor_diagnostic_setting" "diag" {
+  name               = "Logs and Metrics to storage"
+  target_resource_id = azurerm_recovery_services_vault.vault.id
+  storage_account_id = azurerm_storage_account.sa_monitor.id
+
+  enabled_log {
+    category = "AzureBackupReport"
+  }
+
+  enabled_log {
+    category = "CoreAzureBackup"
+  }
+
+  enabled_log {
+    category = "AddonAzureBackupAlerts"
+  }
+
+  enabled_log {
+    category = "AzureSiteRecoveryJobs"
+  }
+
+  enabled_log {
+    category = "AzureSiteRecoveryEvents"
+  }
+
+  metric {
+    category = "AllMetrics"
+    enabled  = true
+  }
+}
+
